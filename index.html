@@ -1,0 +1,168 @@
+import React, { useEffect, useRef, useState } from "react";
+
+export default function CustomSnakeGame() {
+  const canvasRef = useRef(null);
+  const [headImage, setHeadImage] = useState(null);
+  const [score, setScore] = useState(0);
+
+  const gridSize = 20;
+  const tileCount = 20;
+
+  const snakeRef = useRef([{ x: 10, y: 10 }]);
+  const velocityRef = useRef({ x: 1, y: 0 });
+  const foodRef = useRef({ x: 5, y: 5 });
+  const gameOverRef = useRef(false);
+
+  useEffect(() => {
+    const img = new Image();
+    img.src = "/SNAKE.png";
+    img.onload = () => setHeadImage(img);
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+
+    const handleKey = (e) => {
+      const v = velocityRef.current;
+
+      if (e.key === "ArrowUp" && v.y !== 1) velocityRef.current = { x: 0, y: -1 };
+      if (e.key === "ArrowDown" && v.y !== -1) velocityRef.current = { x: 0, y: 1 };
+      if (e.key === "ArrowLeft" && v.x !== 1) velocityRef.current = { x: -1, y: 0 };
+      if (e.key === "ArrowRight" && v.x !== -1) velocityRef.current = { x: 1, y: 0 };
+    };
+
+    window.addEventListener("keydown", handleKey);
+
+    const gameLoop = setInterval(() => {
+      if (gameOverRef.current) return;
+
+      const snake = [...snakeRef.current];
+      const vel = velocityRef.current;
+
+      const newHead = {
+        x: snake[0].x + vel.x,
+        y: snake[0].y + vel.y,
+      };
+
+      newHead.x = (newHead.x + tileCount) % tileCount;
+      newHead.y = (newHead.y + tileCount) % tileCount;
+
+      const hitSelf = snake.some(
+        (part) => part.x === newHead.x && part.y === newHead.y
+      );
+
+      if (hitSelf) {
+        gameOverRef.current = true;
+      }
+
+      snake.unshift(newHead);
+
+      if (newHead.x === foodRef.current.x && newHead.y === foodRef.current.y) {
+        setScore((prev) => prev + 1);
+
+        let newFood;
+        do {
+          newFood = {
+            x: Math.floor(Math.random() * tileCount),
+            y: Math.floor(Math.random() * tileCount),
+          };
+        } while (snake.some((part) => part.x === newFood.x && part.y === newFood.y));
+
+        foodRef.current = newFood;
+      } else {
+        snake.pop();
+      }
+
+      snakeRef.current = snake;
+
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = "#1e293b";
+      for (let i = 0; i < tileCount; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * gridSize, 0);
+        ctx.lineTo(i * gridSize, canvas.height);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, i * gridSize);
+        ctx.lineTo(canvas.width, i * gridSize);
+        ctx.stroke();
+      }
+
+      snake.forEach((s, i) => {
+        const px = s.x * gridSize;
+        const py = s.y * gridSize;
+
+        if (i === 0 && headImage) {
+          ctx.drawImage(headImage, px, py, gridSize, gridSize);
+        } else {
+          ctx.fillStyle = i === 0 ? "#fde047" : "#22c55e";
+          ctx.fillRect(px + 2, py + 2, gridSize - 4, gridSize - 4);
+        }
+      });
+
+      ctx.fillStyle = "#ef4444";
+      ctx.beginPath();
+      ctx.arc(
+        foodRef.current.x * gridSize + gridSize / 2,
+        foodRef.current.y * gridSize + gridSize / 2,
+        gridSize / 2.5,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+
+      if (gameOverRef.current) {
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "white";
+        ctx.font = "28px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2);
+      }
+    }, 120);
+
+    return () => {
+      clearInterval(gameLoop);
+      window.removeEventListener("keydown", handleKey);
+    };
+  }, [headImage]);
+
+  const restartGame = () => {
+    snakeRef.current = [{ x: 10, y: 10 }];
+    velocityRef.current = { x: 1, y: 0 };
+    foodRef.current = { x: 5, y: 5 };
+    gameOverRef.current = false;
+    setScore(0);
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-4 p-4">
+      <h1 className="text-3xl font-bold">Snake Game</h1>
+
+      <p className="text-lg font-semibold">Score: {score}</p>
+
+      <canvas
+        ref={canvasRef}
+        width={gridSize * tileCount}
+        height={gridSize * tileCount}
+        className="border-4 border-slate-700 rounded-2xl shadow-lg"
+      />
+
+      <button
+        onClick={restartGame}
+        className="px-5 py-2 bg-green-500 text-white rounded-xl font-semibold"
+      >
+        Restart
+      </button>
+
+      <p className="text-sm text-gray-500">
+        Controls: Arrow Keys • Head image: SNAKE.png
+      </p>
+    </div>
+  );
+}
