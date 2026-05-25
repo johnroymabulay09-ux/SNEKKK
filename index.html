@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 
 export default function CustomSnakeGame() {
   const canvasRef = useRef(null);
-  const [headImage, setHeadImage] = useState(null);
-  const [score, setScore] = useState(0);
+  const [headImage, setHeadImage] = useState(null);
+  const [score, setScore] = useState(0);
+
 
   const gridSize = 20;
   const tileCount = 20;
@@ -11,20 +12,22 @@ export default function CustomSnakeGame() {
   const snakeRef = useRef([{ x: 10, y: 10 }]);
   const velocityRef = useRef({ x: 1, y: 0 });
   const foodRef = useRef({ x: 5, y: 5 });
-  const gameOverRef = useRef(false);
-
+  const gameOverRef = useRef(false);
+  // ✅ Load PNG from public folder
   useEffect(() => {
-    const img = new Image();
-    img.src = "/SNAKE.png";
-    img.onload = () => setHeadImage(img);
-  }, []);
+    const img = new Image();
+    img.src = "/SNAKE.png"; // make sure nasa public folder
+    img.onload = () => setHeadImage(img);
+  }, []);
 
-  useEffect(() => {
+
+  useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
 
     const handleKey = (e) => {
       const v = velocityRef.current;
+
 
       if (e.key === "ArrowUp" && v.y !== 1) velocityRef.current = { x: 0, y: -1 };
       if (e.key === "ArrowDown" && v.y !== -1) velocityRef.current = { x: 0, y: 1 };
@@ -34,8 +37,18 @@ export default function CustomSnakeGame() {
 
     window.addEventListener("keydown", handleKey);
 
+    const getRotation = (vel) => {
+      if (vel.x === 1) return 0;
+      if (vel.x === -1) return Math.PI;
+      if (vel.y === -1) return -Math.PI / 2;
+      if (vel.y === 1) return Math.PI / 2;
+      return 0;
+    };
+
+
     const gameLoop = setInterval(() => {
-      if (gameOverRef.current) return;
+      if (gameOverRef.current) return;
+
 
       const snake = [...snakeRef.current];
       const vel = velocityRef.current;
@@ -48,97 +61,111 @@ export default function CustomSnakeGame() {
       newHead.x = (newHead.x + tileCount) % tileCount;
       newHead.y = (newHead.y + tileCount) % tileCount;
 
-      const hitSelf = snake.some(
-        (part) => part.x === newHead.x && part.y === newHead.y
-      );
+      // ✅ self collision
+      const hitSelf = snake.some(
+        (part) => part.x === newHead.x && part.y === newHead.y
+      );
 
-      if (hitSelf) {
-        gameOverRef.current = true;
-      }
+
+      if (hitSelf) {
+        gameOverRef.current = true;
+      }
+
 
       snake.unshift(newHead);
 
+      // ✅ eat food
       if (newHead.x === foodRef.current.x && newHead.y === foodRef.current.y) {
-        setScore((prev) => prev + 1);
+        setScore((prev) => prev + 1);
 
-        let newFood;
-        do {
-          newFood = {
-            x: Math.floor(Math.random() * tileCount),
-            y: Math.floor(Math.random() * tileCount),
-          };
-        } while (snake.some((part) => part.x === newFood.x && part.y === newFood.y));
 
-        foodRef.current = newFood;
+        let newFood;
+        do {
+          newFood = {
+            x: Math.floor(Math.random() * tileCount),
+            y: Math.floor(Math.random() * tileCount),
+          };
+        } while (snake.some((p) => p.x === newFood.x && p.y === newFood.y));
+
+
+        foodRef.current = newFood;
       } else {
         snake.pop();
       }
 
       snakeRef.current = snake;
 
-      ctx.fillStyle = "#0f172a";
+      // ✅ background
+      ctx.fillStyle = "#0f172a";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      ctx.strokeStyle = "#1e293b";
-      for (let i = 0; i < tileCount; i++) {
-        ctx.beginPath();
-        ctx.moveTo(i * gridSize, 0);
-        ctx.lineTo(i * gridSize, canvas.height);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(0, i * gridSize);
-        ctx.lineTo(canvas.width, i * gridSize);
-        ctx.stroke();
-      }
-
+      // ✅ snake
       snake.forEach((s, i) => {
-        const px = s.x * gridSize;
-        const py = s.y * gridSize;
+        const px = s.x * gridSize;
+        const py = s.y * gridSize;
 
-        if (i === 0 && headImage) {
-          ctx.drawImage(headImage, px, py, gridSize, gridSize);
+
+        if (i === 0 && headImage) {
+          const angle = getRotation(velocityRef.current);
+
+
+          ctx.save();
+          ctx.translate(px + gridSize / 2, py + gridSize / 2);
+          ctx.rotate(angle);
+          ctx.drawImage(
+            headImage,
+            -gridSize / 2,
+            -gridSize / 2,
+            gridSize,
+            gridSize
+          );
+          ctx.restore();
         } else {
-          ctx.fillStyle = i === 0 ? "#fde047" : "#22c55e";
-          ctx.fillRect(px + 2, py + 2, gridSize - 4, gridSize - 4);
+          ctx.fillStyle = i === 0 ? "#fde047" : "#22c55e";
+          ctx.fillRect(px + 2, py + 2, gridSize - 4, gridSize - 4);
         }
       });
 
-      ctx.fillStyle = "#ef4444";
-      ctx.beginPath();
-      ctx.arc(
-        foodRef.current.x * gridSize + gridSize / 2,
-        foodRef.current.y * gridSize + gridSize / 2,
-        gridSize / 2.5,
-        0,
-        Math.PI * 2
+      // ✅ food (circle)
+      ctx.fillStyle = "#ef4444";
+      ctx.beginPath();
+      ctx.arc(
+        foodRef.current.x * gridSize + gridSize / 2,
+        foodRef.current.y * gridSize + gridSize / 2,
+        gridSize / 2.5,
+        0,
+        Math.PI * 2
       );
-      ctx.fill();
+      ctx.fill();
 
-      if (gameOverRef.current) {
-        ctx.fillStyle = "rgba(0,0,0,0.6)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.fillStyle = "white";
-        ctx.font = "28px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2);
-      }
+      // ✅ game over overlay
+      if (gameOverRef.current) {
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+
+        ctx.fillStyle = "white";
+        ctx.font = "28px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2);
+      }
     }, 120);
 
     return () => {
       clearInterval(gameLoop);
       window.removeEventListener("keydown", handleKey);
     };
-  }, [headImage]);
+  }, [headImage]);
 
-  const restartGame = () => {
-    snakeRef.current = [{ x: 10, y: 10 }];
-    velocityRef.current = { x: 1, y: 0 };
-    foodRef.current = { x: 5, y: 5 };
-    gameOverRef.current = false;
-    setScore(0);
-  };
+  // ✅ restart
+  const restartGame = () => {
+    snakeRef.current = [{ x: 10, y: 10 }];
+    velocityRef.current = { x: 1, y: 0 };
+    foodRef.current = { x: 5, y: 5 };
+    gameOverRef.current = false;
+    setScore(0);
+  };
 
   return (
     <div className="flex flex-col items-center gap-4 p-4">
@@ -155,13 +182,14 @@ export default function CustomSnakeGame() {
 
       <button
         onClick={restartGame}
-        className="px-5 py-2 bg-green-500 text-white rounded-xl font-semibold"
-      >
-        Restart
-      </button>
+        className="px-5 py-2 bg-green-500 text-white rounded-xl font-semibold"
+      >
+        Restart
+      </button>
 
-      <p className="text-sm text-gray-500">
-        Controls: Arrow Keys • Head image: SNAKE.png
+
+      <p className="text-sm text-gray-400">
+        Controls: Arrow Keys • PNG: /public/SNAKE.png
       </p>
     </div>
   );
