@@ -16,7 +16,7 @@ export default function CustomSnakeGame() {
   // ✅ Load PNG from public folder
   useEffect(() => {
     const img = new Image();
-    img.src = "/SNAKE.png"; // make sure nasa public folder
+    img.src = "./SNAKE.png"; // make sure nasa public folder
     img.onload = () => setHeadImage(img);
   }, []);
 
